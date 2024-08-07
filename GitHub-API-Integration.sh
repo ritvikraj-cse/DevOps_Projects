@@ -1,4 +1,4 @@
-# GitHub-Integration-Module  branch-ritvik
+# GitHub-Integration-Module
 
 #!/bin/bash
 
