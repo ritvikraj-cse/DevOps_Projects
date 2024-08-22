@@ -63,9 +63,8 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
-                    git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/ritvikraj-cse/Projects.git'
-                }
+                git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/ritvikraj-cse/Projects.git'
+                
             }
         }
         
