@@ -41,6 +41,11 @@ Then, you can run the script using:
 ./install_docker.sh
 ```
 
+### Let Sonarqube to execute docker commands
+```bash
+sudo chmod 666 /var/run/docker.sock
+```
+
 ## Create Sonarqube Docker container
 To run SonarQube in a Docker container with the provided command, you can follow these steps:
 

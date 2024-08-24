@@ -9,12 +9,12 @@ pipeline {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/ritvikraj-cse/Projects.git'
+        //git branch: 'Jenkins', url: 'https://github.com/ritvikraj-cse/Projects.git'
       }
     }
     stage('Build and Test') {
       steps {
-        dir('Jenkins/Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
+        dir('Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
           sh 'ls -ltr'
           sh 'mvn clean package' // build the project and create a JAR file
         }
@@ -25,7 +25,7 @@ pipeline {
         SONAR_URL = "http://34.201.116.83:9000"
       }
       steps {
-        dir('Jenkins/Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
+        dir('Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
           withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
             sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
           }
@@ -38,7 +38,7 @@ pipeline {
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
-        dir('Jenkins/Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
+        dir('Docker_as_agent/java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
           script {
             sh 'docker build -t ${DOCKER_IMAGE} .'
             def dockerImage = docker.image("${DOCKER_IMAGE}")
@@ -56,7 +56,7 @@ pipeline {
         }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                dir('Jenkins/Docker_as_agent/java-maven-sonar-argocd-helm-k8s') {
+                dir('Docker_as_agent/java-maven-sonar-argocd-helm-k8s') {
                     sh '''
                         git config user.email "ritvikraj.cse@gmail.com"
                         git config user.name "Ritvik Raj"

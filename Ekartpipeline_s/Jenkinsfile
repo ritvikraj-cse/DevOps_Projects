@@ -12,13 +12,13 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'a5eb0873-011b-488f-9bc9-85a85168b1c0', url: 'https://github.com/ritvikraj-cse/Projects.git'
+                git branch: 'Jenkins', credentialsId: 'a5eb0873-011b-488f-9bc9-85a85168b1c0', url: 'https://github.com/ritvikraj-cse/Projects.git'
             }
         }
         
         stage('Compile') {
             steps {
-                dir('Jenkins/ShackEkartpipeline') {
+                dir('Ekartpipeline_s') {
                     sh "mvn clean compile -DskipTests=true"
                 }
             }
@@ -26,7 +26,7 @@ pipeline {
         
         stage('OWASP Scan') {
             steps {
-                dir('Jenkins/ShackEkartpipeline') {
+                dir('Ekartpipeline_s') {
                     dependencyCheck additionalArguments: '--scan ./ ', odcInstallation: 'DP'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
@@ -35,7 +35,7 @@ pipeline {
         
         stage('SonarQube') {
             steps {
-                dir('Jenkins/ShackEkartpipeline') {
+                dir('Ekartpipeline_s') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Shopping-Cart \
                         -Dsonar.java.binaries=. \
@@ -47,7 +47,7 @@ pipeline {
         
         stage('Build') {
             steps {
-                dir('Jenkins/ShackEkartpipeline') {
+                dir('Ekartpipeline_s') {
                     sh "mvn clean package -DskipTests=true"
                 }
             }

@@ -63,14 +63,14 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/ritvikraj-cse/Projects.git'
+                git branch: 'Jenkins', credentialsId: 'git-cred', url: 'https://github.com/ritvikraj-cse/Projects.git'
                 
             }
         }
         
         stage('Compile') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     sh "mvn compile"
                 }
             }
@@ -78,7 +78,7 @@ pipeline {
         
         stage('Test') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     sh "mvn test"
                 }
             }
@@ -86,7 +86,7 @@ pipeline {
         
         stage('File System Scan') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     sh "trivy fs --format table -o trivy-fs-report.html ."
                 }
             }
@@ -94,7 +94,7 @@ pipeline {
         
         stage('SonarQube Analysis') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     withSonarQubeEnv('sonar') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
                                 -Dsonar.java.binaries=. '''
@@ -105,7 +105,7 @@ pipeline {
         
         stage('Quality Gate') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     script {
                         waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
                     }
@@ -115,7 +115,7 @@ pipeline {
         
         stage('Build') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     sh "mvn package"
                 }
             }
@@ -123,7 +123,7 @@ pipeline {
         
         stage('Publish To Nexus') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
                         sh "mvn deploy"
                     }
@@ -133,7 +133,7 @@ pipeline {
         
         stage('Build & Tag Docker Image') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     script {
                         withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
                             sh "docker build -t ritvikraj/boardgame:latest ."
@@ -145,7 +145,7 @@ pipeline {
         
         stage('Docker Image Scan') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     sh "trivy image --format table -o trivy-image-report.html ritvikraj/boardgame:latest"
                 }
             }
@@ -153,7 +153,7 @@ pipeline {
         
         stage('Push Docker Image') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     script {
                         withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
                             sh "docker push ritvikraj/boardgame:latest"
@@ -165,7 +165,7 @@ pipeline {
         
         stage('Deploy To Kubernetes') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://172.31.8.146:6443') {
                         sh "kubectl apply -f deployment-service.yaml"
                     }
@@ -175,7 +175,7 @@ pipeline {
         
         stage('Verify the Deployment') {
             steps {
-                dir('Jenkins/shackboardpipeline/Boardgame-main') {
+                dir('Boardgamepipeline_s/Boardgame-main') {
                     withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://172.31.8.146:6443') {
                         sh "kubectl get pods -n webapps"
                         sh "kubectl get svc -n webapps"
