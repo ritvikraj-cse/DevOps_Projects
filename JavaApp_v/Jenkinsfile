@@ -1,15 +1,38 @@
 @Library('my-shared-library') _
 
 pipeline {
+    tools {
+        jdk 'jdk11'
+        maven 'maven3'
+    }
     agent any
-
+    parameters {
+        choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create or delete')
+    }
     stages {
         stage('Git Checkout') {
+            when { expression { params.action == 'create' } }
             steps {
                 gitCheckout(
                     branch: 'Jenkins',
                     url: 'https://github.com/ritvikraj-cse/Projects.git'
                 )
+            }
+        }
+        stage('Unit Test: maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage('Integration Test: maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn verify'
+                }
             }
         }
     }
