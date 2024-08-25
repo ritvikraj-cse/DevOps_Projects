@@ -58,5 +58,15 @@ pipeline {
                 }
             }
         }
+        stage('Build: Maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        mvnBuild()  
+                    }
+                }
+            }
+        }
     }
 }
