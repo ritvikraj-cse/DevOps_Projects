@@ -5,6 +5,7 @@ pipeline {
         jdk 'jdk11'
         maven 'maven3'
     }
+
     agent any
     parameters {
         choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create or delete')
@@ -19,7 +20,7 @@ pipeline {
                 )
             }
         }
-        stage('Unit Test: maven') {
+        stage('Unit Test: Maven') {
             when { expression { params.action == 'create' } }
             steps {
                 dir('JavaApp_v') {
@@ -27,11 +28,33 @@ pipeline {
                 }
             }
         }
-        stage('Integration Test: maven') {
+        stage('Integration Test: Maven') {
             when { expression { params.action == 'create' } }
             steps {
                 dir('JavaApp_v') {
                     sh 'mvn verify'
+                }
+            }
+        }
+        stage('Static Code Analysis: SonarQube') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'
+                        statiCodeAnalysis(sonarQubeCredentialsId)
+                    }
+                }
+            }
+        }
+        stage('Quality Gate Status Check: SonarQube') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'
+                        QualityGateStatus(sonarQubeCredentialsId)
+                    }
                 }
             }
         }
