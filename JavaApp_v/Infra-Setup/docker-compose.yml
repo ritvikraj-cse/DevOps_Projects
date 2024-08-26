@@ -1,0 +1,32 @@
+version: '3'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins-sonarqube
+    privileged: true
+
+  sonarqube:
+    image: sonarqube:lts
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    networks:
+      - jenkins-sonarqube
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:h2:tcp://localhost/sonarqube
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+
+volumes:
+  jenkins_home:
+
+networks:
+  jenkins-sonarqube:
+
