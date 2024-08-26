@@ -2,7 +2,6 @@
 
 pipeline {
     tools {
-        // Define tools needed for the pipeline
         jdk 'jdk11'       // JDK version to use
         maven 'maven3'    // Maven version to use
     }
@@ -10,7 +9,6 @@ pipeline {
     agent any
 
     parameters {
-        // Define parameters for the pipeline
         choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create or delete')
         string(name: 'ImageName', description: "Docker image name", defaultValue: 'ritvik-java-app')
         string(name: 'ImageTag', description: "Docker image tag", defaultValue: 'latest')
@@ -21,11 +19,9 @@ pipeline {
         stage('Git Checkout') {
             when { expression { params.action == 'create' } }
             steps {
-                // Checkout the specified branch from the Git repository
-                gitCheckout(
-                    branch: 'Jenkins',
-                    url: 'https://github.com/ritvikraj-cse/Projects.git'
-                )
+                script {
+                    gitCheckout(branch: 'Jenkins', url: 'https://github.com/ritvikraj-cse/Projects.git')
+                }
             }
         }
         stage('Unit Test: Maven') {
@@ -69,7 +65,6 @@ pipeline {
         stage('Build: Maven') {
             when { expression { params.action == 'create' } }
             steps {
-                // Build the application using Maven
                 dir('JavaApp_v') {
                     script {
                         mvnBuild()  // Call custom build function from shared library
@@ -80,11 +75,18 @@ pipeline {
         stage('Build Image: Docker') {
             when { expression { params.action == 'create' } }
             steps {
-                // Build Docker image using Dockerfile in 'JavaApp_v' directory
                 dir('JavaApp_v') {
                     script {
                         dockerBuild("${params.ImageName}", "${params.ImageTag}", "${params.DockerHubUser}") // Call custom Docker build function
                     }
+                }
+            }
+        }
+        stage('Docker Image Scan: Trivy') {
+            when { expression { params.action == 'create' } }
+            steps {
+                script {
+                    dockerImageScan("${params.ImageName}", "${params.ImageTag}", "${params.DockerHubUser}") // Call custom Docker image scan function
                 }
             }
         }
