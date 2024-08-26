@@ -1,0 +1,125 @@
+@Library('my-shared-library') _  // Load the custom shared library
+
+pipeline {
+    tools {
+        jdk 'jdk11'       // Specify the JDK version to use
+        maven 'maven3'    // Specify the Maven version to use
+    }
+
+    agent any  // Run the pipeline on any available agent
+
+    parameters {
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')  // Parameter to choose between creating or deleting resources
+        string(name: 'AWS_Account_Id', description: "AWS Account ID", defaultValue: '730335360229')  // AWS Account ID
+        string(name: 'Region', description: "ECR Region", defaultValue: 'ap-south-1')  // AWS region for ECR and EKS
+        string(name: 'ECR_Repo_Name', description: "ECR Name", defaultValue: 'ritvikrj99')  // Name of the ECR repository
+        string(name: 'Cluster', description: "EKS Cluster Name", defaultValue: 'rit-cluster1')  // Name of the EKS cluster
+    }
+
+    environment {
+        ACCESS_KEY = credentials('aws-cred')  // AWS Access Key, stored in Jenkins credentials
+        SECRET_KEY = credentials('aws-cred')  // AWS Secret Key, stored in Jenkins credentials
+    }
+
+    stages {
+        stage('Git Checkout') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    gitCheckout(branch: 'Jenkins', url: 'https://github.com/ritvikraj-cse/Projects.git')  // Checkout code from the specified Git branch
+                }
+            }
+        }
+
+        stage('Unit Test: Maven') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn test'  // Run unit tests using Maven
+                }
+            }
+        }
+
+        stage('Integration Test: Maven') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn verify'  // Run integration tests using Maven
+                }
+            }
+        }
+
+        stage('Static Code Analysis: SonarQube') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'  // SonarQube credentials ID
+                        statiCodeAnalysis(sonarQubeCredentialsId)  // Perform static code analysis using SonarQube
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate Status Check: SonarQube') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'  // SonarQube credentials ID
+                        QualityGateStatus(sonarQubeCredentialsId)  // Check the quality gate status from SonarQube
+                    }
+                }
+            }
+        }
+
+        stage('Build: Maven') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        mvnBuild()  // Custom Maven build function from the shared library
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Build: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        dockerBuild("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Build Docker image and tag it for ECR
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Scan: Trivy') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    dockerImageScan("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Scan Docker image using Trivy
+                }
+            }
+        }
+
+        stage('Docker Image Push: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    dockerImagePush("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Push Docker image to ECR
+                }
+            }
+        }
+
+        stage('Docker Image Cleanup: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    dockerImageCleanup("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Cleanup old Docker images in ECR
+                }
+            }
+        }
+    }
+}

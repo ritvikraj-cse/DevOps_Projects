@@ -88,13 +88,38 @@ sudo chmod 666 /var/run/docker.sock
 - Verify the image on DockerHub.
 
 ### 10.Docker Image Cleanup : DockerHub
+# 11. Deploy to ECR 
+## Create Amazon ECR 
+##### AWS Console:
+
+```AWS Management Console -> ECR -> Create repository -> Enter repository name -> Choose Tag Immutability -> Create repository.```
+
+##### AWS CLI: ```aws ecr create-repository --repository-name <your-repo-name> ```
+##### Terraform:
+
+```
+resource "aws_ecr_repository" "example" {
+  name                 = "<your-repo-name>"
+  image_tag_mutability = "MUTABLE"
+}
+```
+
+- Then run ```terraform apply```
+
+## Configure AWS Credentials
+- Create an IAM User and Attach ECRFullAccess policy
+- Add AWS Credentials in Jenkins
+- Store AWS Credentials:
+    - Manage Jenkins → Manage Credentials → Add AWS credentials with an appropriate ID (e.g., aws-cred)
 
 
+## Create [Jenkinsfile-ECR](https://github.com/ritvikraj-cse/Projects/blob/Jenkins/JavaApp_v/Jenkinsfile-ECR) with [Shared Library](https://github.com/ritvikraj-cse/Projects/tree/Jenkins/JavaApp_v/jenkins_shared_lib)
+- Install "Amazon ECR plugin" and "Docker Pipeline Plugin"
 
-
-
-
-
-
-
-
+## Docker Image Build, Scan, Push, and Cleanup
+- 11.1 Docker Image Build: ECR
+- 11.2 Docker Image Scan: Trivy
+- 11.3 Docker Image Push: ECR
+    - Install AWS CLI on Jenkins Server
+- 11.4 Docker Image Cleanup: ECR
+- Run the Pipeline
