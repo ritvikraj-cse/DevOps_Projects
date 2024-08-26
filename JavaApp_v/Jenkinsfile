@@ -2,18 +2,26 @@
 
 pipeline {
     tools {
-        jdk 'jdk11'
-        maven 'maven3'
+        // Define tools needed for the pipeline
+        jdk 'jdk11'       // JDK version to use
+        maven 'maven3'    // Maven version to use
     }
 
     agent any
+
     parameters {
+        // Define parameters for the pipeline
         choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create or delete')
+        string(name: 'ImageName', description: "Docker image name", defaultValue: 'ritvik-java-app')
+        string(name: 'ImageTag', description: "Docker image tag", defaultValue: 'latest')
+        string(name: 'DockerHubUser', description: "Docker Hub Username", defaultValue: 'ritvikrj99')
     }
+
     stages {
         stage('Git Checkout') {
             when { expression { params.action == 'create' } }
             steps {
+                // Checkout the specified branch from the Git repository
                 gitCheckout(
                     branch: 'Jenkins',
                     url: 'https://github.com/ritvikraj-cse/Projects.git'
@@ -24,7 +32,7 @@ pipeline {
             when { expression { params.action == 'create' } }
             steps {
                 dir('JavaApp_v') {
-                    sh 'mvn test'
+                    sh 'mvn test' // Run unit tests
                 }
             }
         }
@@ -32,7 +40,7 @@ pipeline {
             when { expression { params.action == 'create' } }
             steps {
                 dir('JavaApp_v') {
-                    sh 'mvn verify'
+                    sh 'mvn verify' // Run integration tests
                 }
             }
         }
@@ -42,7 +50,7 @@ pipeline {
                 dir('JavaApp_v') {
                     script {
                         def sonarQubeCredentialsId = 'sonar-cred'
-                        statiCodeAnalysis(sonarQubeCredentialsId)
+                        statiCodeAnalysis(sonarQubeCredentialsId) // Perform static code analysis
                     }
                 }
             }
@@ -53,7 +61,7 @@ pipeline {
                 dir('JavaApp_v') {
                     script {
                         def sonarQubeCredentialsId = 'sonar-cred'
-                        QualityGateStatus(sonarQubeCredentialsId)
+                        QualityGateStatus(sonarQubeCredentialsId) // Check SonarQube quality gate status
                     }
                 }
             }
@@ -61,9 +69,21 @@ pipeline {
         stage('Build: Maven') {
             when { expression { params.action == 'create' } }
             steps {
+                // Build the application using Maven
                 dir('JavaApp_v') {
                     script {
-                        mvnBuild()  
+                        mvnBuild()  // Call custom build function from shared library
+                    }
+                }
+            }
+        }
+        stage('Build Image: Docker') {
+            when { expression { params.action == 'create' } }
+            steps {
+                // Build Docker image using Dockerfile in 'JavaApp_v' directory
+                dir('JavaApp_v') {
+                    script {
+                        dockerBuild("${params.ImageName}", "${params.ImageTag}", "${params.DockerHubUser}") // Call custom Docker build function
                     }
                 }
             }
