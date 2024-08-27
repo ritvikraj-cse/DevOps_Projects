@@ -1,0 +1,197 @@
+@Library('my-shared-library') _  // Load the custom shared library
+
+pipeline {
+    tools {
+        jdk 'jdk11'       // Specify the JDK version to use for the build
+        maven 'maven3'    // Specify the Maven version to use for the build
+    }
+
+    agent any  // Run the pipeline on any available agent
+
+    parameters {
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')  // Parameter to choose between creating or deleting resources
+        string(name: 'AWS_Account_Id', description: "AWS Account ID", defaultValue: '730335360229')  // AWS Account ID
+        string(name: 'Region', description: "ECR Region", defaultValue: 'ap-south-1')  // AWS region for ECR and EKS
+        string(name: 'ECR_Repo_Name', description: "ECR Name", defaultValue: 'ritvikrj99')  // Name of the ECR repository
+        string(name: 'Cluster', description: "EKS Cluster Name", defaultValue: 'ritvik-cluster')  // Name of the EKS cluster
+    }
+
+    environment {
+        ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')  // AWS_ACCESS_KEY_ID, stored in Jenkins credentials
+        SECRET_KEY = credentials('AWS_SECRET_KEY_ID')  // AWS_SECRET_KEY_ID, stored in Jenkins credentials
+    }
+
+    stages {
+        stage('Git Checkout') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    gitCheckout(branch: 'Jenkins', url: 'https://github.com/ritvikraj-cse/Projects.git')  // Checkout code from the specified Git branch
+                }
+            }
+        }
+
+        // Uncomment these stages if unit tests, integration tests, and static code analysis are required
+
+        // stage('Unit Test: Maven') {
+        //     when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+        //     steps {
+        //         dir('JavaApp_v') {
+        //             sh 'mvn test'  // Run unit tests using Maven
+        //         }
+        //     }
+        // }
+
+        // stage('Integration Test: Maven') {
+        //     when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+        //     steps {
+        //         dir('JavaApp_v') {
+        //             sh 'mvn verify'  // Run integration tests using Maven
+        //         }
+        //     }
+        // }
+
+        // stage('Static Code Analysis: SonarQube') {
+        //     when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+        //     steps {
+        //         dir('JavaApp_v') {
+        //             script {
+        //                 def sonarQubeCredentialsId = 'sonar-cred'  // SonarQube credentials ID
+        //                 statiCodeAnalysis(sonarQubeCredentialsId)  // Perform static code analysis using SonarQube
+        //             }
+        //         }
+        //     }
+        // }
+
+        // stage('Quality Gate Status Check: SonarQube') {
+        //     when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+        //     steps {
+        //         dir('JavaApp_v') {
+        //             script {
+        //                 def sonarQubeCredentialsId = 'sonar-cred'  // SonarQube credentials ID
+        //                 QualityGateStatus(sonarQubeCredentialsId)  // Check the quality gate status from SonarQube
+        //             }
+        //         }
+        //     }
+        // }
+
+        // stage('Build: Maven') {
+        //     when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+        //     steps {
+        //         dir('JavaApp_v') {
+        //             script {
+        //                 mvnBuild()  // Custom Maven build function from the shared library
+        //             }
+        //         }
+        //     }
+        // }
+
+        stage('Docker Image Build: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        try {
+                            dockerBuild("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Build Docker image and tag it for ECR
+                        } catch (err) {
+                            currentBuild.result = 'FAILURE'
+                            error("Docker build failed: ${err.getMessage()}")  // Handle build failure
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Scan: Trivy') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    try {
+                        dockerImageScan("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Scan Docker image using Trivy
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
+                        error("Docker image scan failed: ${err.getMessage()}")  // Handle scan failure
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Push: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    try {
+                        dockerImagePush("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Push Docker image to ECR
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
+                        error("Docker image push failed: ${err.getMessage()}")  // Handle push failure
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Cleanup: ECR') {
+            when { expression { params.action == 'create' } }  // Run this stage only if 'create' is selected
+            steps {
+                script {
+                    try {
+                        dockerImageCleanup("${params.AWS_Account_Id}", "${params.Region}", "${params.ECR_Repo_Name}")  // Cleanup old Docker images in ECR
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
+                        error("Docker image cleanup failed: ${err.getMessage()}")  // Handle cleanup failure
+                    }
+                }
+            }
+        }
+
+        stage('Create EKS Cluster: Terraform') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v/EKS_Terraform') {
+                    sh """
+                        aws configure set aws_access_key_id "${ACCESS_KEY}"
+                        aws configure set aws_secret_access_key "${SECRET_KEY}"
+                        aws configure set region "${params.Region}"
+                        terraform init  
+                        terraform plan -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.Region}'  // Plan Terraform changes
+                        terraform apply -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.Region}' --auto-approve  // Apply Terraform changes
+                    """
+                }
+            }
+        }
+
+        stage('Connect to EKS: AWS') {
+            when { expression { params.action == 'create' } }
+            steps {
+                sh """
+                    aws configure set aws_access_key_id "${ACCESS_KEY}"
+                    aws configure set aws_secret_access_key "${SECRET_KEY}"
+                    aws configure set region "${params.Region}"
+                    aws eks --region ${params.Region} update-kubeconfig --name ${params.Cluster}  // Update kubeconfig to connect to EKS
+                """
+            }
+        }
+
+        stage('Deployment on EKS Cluster: AWS') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def apply = false
+                        try {
+                            input message: 'Please confirm to deploy on EKS', ok: 'Ready to apply the config?'  // Manual approval before deployment
+                            apply = true
+                        } catch (err) {
+                            apply = false
+                            currentBuild.result = 'UNSTABLE'
+                            error("Deployment was not confirmed. Pipeline will be marked as unstable.")  // Handle user cancellation
+                        }
+                        if (apply) {
+                            sh 'kubectl apply -f .'  // Apply Kubernetes configuration
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

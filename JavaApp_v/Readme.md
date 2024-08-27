@@ -88,15 +88,15 @@ sudo chmod 666 /var/run/docker.sock
 - Verify the image on DockerHub.
 
 ### 10.Docker Image Cleanup : DockerHub
-# 11. Deploy to ECR 
+# 11. Deploy to Amazon ECR
 ## Create Amazon ECR 
 ##### AWS Console:
 
-```AWS Management Console -> ECR -> Create repository -> Enter repository name -> Choose Tag Immutability -> Create repository.```
+AWS Management Console -> ECR -> Create repository -> Enter repository name -> Choose Tag Immutability -> Create repository.
 
 ##### AWS CLI: ```aws ecr create-repository --repository-name <your-repo-name> ```
-##### Terraform:
 
+##### Terraform:
 ```
 resource "aws_ecr_repository" "example" {
   name                 = "<your-repo-name>"
@@ -122,4 +122,57 @@ resource "aws_ecr_repository" "example" {
 - 11.3 Docker Image Push: ECR
     - Install AWS CLI on Jenkins Server
 - 11.4 Docker Image Cleanup: ECR
+- Run the Pipeline
+
+
+# 12. Deploy to Amazon EKS  
+## Create an Amazon EKS Cluster
+
+- AWS Console:
+    - Go to AWS Management Console -> EKS -> Create cluster -> Choose instance type and configure settings -> Create
+
+- AWS CLI:
+```
+aws eks create-cluster --name <cluster-name> --role-arn <iam-role-arn> --resources-vpc-config subnetIds=<subnet-ids>,securityGroupIds=<security-group-ids>
+```
+- Terraform:
+```
+resource "aws_eks_cluster" "example" {
+  name     = "<cluster-name>"
+  role_arn = "<iam-role-arn>"
+  vpc_config {
+    subnet_ids = [<subnet-ids>]
+    security_group_ids = [<security-group-ids>]
+  }
+}
+```
+## Configure kubectl
+
+- Install kubectl
+- Configure kubectl to use your EKS cluster: ```aws eks update-kubeconfig --name <cluster-name> --region <region>```
+
+## Deploy Application
+
+- Create a Kubernetes deployment YAML file (e.g., deployment.yaml)
+- Apply the deployment YAML file: 
+ ```kubectl apply -f deployment.yaml ```
+## Expose Application
+
+- Create a Kubernetes service YAML file (e.g., service.yaml)
+- Apply the service YAML file: ```kubectl apply -f service.yaml```
+
+## Verify Deployment
+
+- Check the status of your deployment: ```kubectl get deployments```
+- Check the status of your service: ```kubectl get services```
+
+
+
+
+
+- Deploy to EKS
+- 11.1 Create EKS Cluster: Terraform
+- 11.2 Connect to EKS: AWS
+- 11.3 Deployment on EKS Cluster: AWS
+
 - Run the Pipeline
