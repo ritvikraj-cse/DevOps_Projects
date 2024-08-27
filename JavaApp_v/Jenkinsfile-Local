@@ -1,0 +1,108 @@
+@Library('my-shared-library') _
+
+pipeline {
+    tools {
+        jdk 'jdk11'       // JDK version to use
+        maven 'maven3'    // Maven version to use
+    }
+
+    agent any
+
+    environment {
+        ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')
+        SECRET_KEY = credentials('AWS_SECRET_KEY_ID')
+    }
+
+    parameters {
+        choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create or delete')
+        string(name: 'ImageTag', description: "Docker image tag", defaultValue: 'latest')
+        string(name: 'ImageName', defaultValue: 'ritvik-java-app', description: 'Docker image name')
+        string(name: 'DockerHubUser', defaultValue: 'ritvikrj99', description: 'Docker Hub Username')
+        string(name: 'MaxImagesToKeep', defaultValue: '3', description: 'Number of latest images to keep')
+    }
+
+    stages {
+        stage('Git Checkout') {
+            when { expression { params.action == 'create' } }
+            steps {
+                script {
+                    gitCheckout(branch: 'Jenkins', url: 'https://github.com/ritvikraj-cse/Projects.git')
+                }
+            }
+        }
+        stage('Unit Test: Maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn test' // Run unit tests
+                }
+            }
+        }
+        stage('Integration Test: Maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    sh 'mvn verify' // Run integration tests
+                }
+            }
+        }
+        stage('Static Code Analysis: SonarQube') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'
+                        statiCodeAnalysis(sonarQubeCredentialsId) // Perform static code analysis
+                    }
+                }
+            }
+        }
+        stage('Quality Gate Status Check: SonarQube') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        def sonarQubeCredentialsId = 'sonar-cred'
+                        QualityGateStatus(sonarQubeCredentialsId) // Check SonarQube quality gate status
+                    }
+                }
+            }
+        }
+        stage('Build: Maven') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        mvnBuild()  // Call custom build function from shared library
+                    }
+                }
+            }
+        }
+        stage('Build Image: Docker') {
+            when { expression { params.action == 'create' } }
+            steps {
+                dir('JavaApp_v') {
+                    script {
+                        dockerBuild("${params.ImageName}", "${params.ImageTag}", "${params.DockerHubUser}") // Call custom Docker build function
+                    }
+                }
+            }
+        }
+        stage('Docker Image Scan: Trivy') {
+            when { expression { params.action == 'create' } }
+            steps {
+                script {
+                    dockerImageScan("${params.ImageName}", "${params.ImageTag}", "${params.DockerHubUser}") // Call custom Docker image scan function
+                }
+            }
+        }
+        stage('Deploy to Local') {
+            when { expression { params.action == 'create' } }
+            steps {
+                script {
+                    deployToLocal(params.ImageName, params.ImageTag)
+                }
+            }
+        }
+    }
+}
