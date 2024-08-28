@@ -1,6 +1,7 @@
-## Installing Jenkins on Ubuntu
+# Install Java and Jenkins
 
-
+- Update package list: ```sudo apt update```
+- Install Java and Jenkins using the script ```install_jenkins.sh```
 ```bash
 #!/bin/bash
 
@@ -22,24 +23,20 @@ sudo apt-get update
 # Install Jenkins
 sudo apt-get install jenkins -y
 ```
-
-Save this script in a file, for example, `install_jenkins.sh`, and make it executable using:
-
-```bash
-chmod +x install_jenkins.sh
-```
-
-Then, you can run the script using:
-
-```bash
-./install_jenkins.sh
-```
-
-This script will automate the installation process of OpenJDK 17 JRE Headless and Jenkins.
+Make it executable using: ```chmod +x install_jenkins.sh``` Then, you can run the script using: ```./install_jenkins.sh```
+- Verify Java installation: ```java -version```
 
 
-## Install docker for future use
 
+
+
+
+
+
+
+
+# Install Docker
+- Install Docker using the script ```install_docker.sh```
 ```bash
 #!/bin/bash
 
@@ -68,26 +65,21 @@ sudo apt-get update
 
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
 ```
+Make it executable using: ```chmod +x install_docker.sh``` Then, you can run the script using: ```./install_docker.sh```
 
-Save this script in a file, for example, `install_docker.sh`, and make it executable using:
 
-```bash
-chmod +x install_docker.sh
-```
 
-Then, you can run the script using:
 
-```bash
-./install_docker.sh
-```
 
-### Let Nexus to execute docker commands
+
+
+# Let Nexus to execute docker commands
 
 ```bash
 sudo chmod 666 /var/run/docker.sock
 ```
 
-### Install Trivy - File System Scan
+# Install Trivy - File System Scan
 
 ```bash
 sudo apt-get install wget apt-transport-https gnupg lsb-release
@@ -98,7 +90,7 @@ sudo apt-get install trivy
 trivy --version
 ```
 
-## KUBECTL
+# KUBECTL
 
 ```bash
 curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
