@@ -1,13 +1,17 @@
 ## Install Plugins in Jenkins
 
-1. Eclipse Temurin Installer
-2. Pipeline Maven Integration
-3. Config File Provider
-4. SonarQube Scanner
-5. Kubernetes CLI
-6. Kubernetes
-7. Docker
-8. Docker Pipeline Step
+1. SonarQube Scanner
+2. Config file provider
+3. Maven Integration
+4. Pipeline maven integration.
+5. Kubernetes
+6. Kubernetes ClientAPI
+7. Kubernetes Credentials
+8. Kubernetes CLI
+9. Docker
+10. Docker Pipeline
+11. Pipeline Stage View
+12. Eclipse Temurin Installer
 
 ## Pipeline 
 
