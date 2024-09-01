@@ -1,52 +1,13 @@
 # Checkout All Branches
 
-## 1. Clone the Repository
-
-
 ```bash
 git clone https://github.com/ritvikraj-cse/Projects.git
-```
-
-
-## 2. Navigate to the Repository Directory
-
-
-```bash
 cd Projects
-```
-
-
-## 3. Fetch All Branches
-
-
-```bash
 git fetch --all
-```
-
-
-## 4. List All Remote Branches
-
-
-```bash
 git branch -r
+git checkout branch-name
+git checkout -b branch-name origin/branch-name
 ```
-
-
-## 5. Checkout a Specific Branch
-
-
-```bash
-git checkout <branch-name>
-```
-
-
-## 6. Create and Checkout a Local Branch Tracking a Remote Branch
-
-
-```bash
-git checkout -b <branch-name> origin/<branch-name>
-```
-
 
 # Automate Checkout of All Branches
 
