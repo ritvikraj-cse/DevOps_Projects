@@ -1,8 +1,8 @@
 # Checkout All Branches
 
 ```bash
-git clone https://github.com/ritvikraj-cse/Projects.git
-cd Projects
+git clone https://github.com/ritvikraj-cse/DevOps_Projects.git
+cd DevOps_Projects
 git fetch --all
 git branch -r
 git checkout branch-name
@@ -15,7 +15,7 @@ git checkout -b branch-name origin/branch-name
 
 
 ```bash
-git clone https://github.com/ritvikraj-cse/Projects.git
+git clone https://github.com/ritvikraj-cse/DevOps_Projects.git
 ```
 
 
@@ -23,7 +23,7 @@ git clone https://github.com/ritvikraj-cse/Projects.git
 
 
 ```bash
-cd Projects
+cd DevOps_Projects
 ```
 
 
